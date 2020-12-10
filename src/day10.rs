@@ -36,16 +36,11 @@ pub fn part2(input: &[u64]) -> u64 {
 
     // ways_to_reach[joltage] returns the number of ways to reach joltage
     let mut ways_to_reach = vec![0u64; (output_joltage + 1) as usize];
-    for joltage in joltages {
-        let joltage = joltage as usize;
-        ways_to_reach[joltage] = match joltage {
-            0 => 1, // charging outlet
-            1 => ways_to_reach[0],
-            2 => ways_to_reach[0] + ways_to_reach[1],
-            _ => {
-                ways_to_reach[joltage - 1] + ways_to_reach[joltage - 2] + ways_to_reach[joltage - 3]
-            }
-        }
+    ways_to_reach.insert(0, 1); // charging outlet
+    for joltage in joltages.into_iter().skip(1) {
+        ways_to_reach[joltage as usize] = (joltage.saturating_sub(3)..=joltage)
+            .map(|prev| ways_to_reach.get(prev as usize).unwrap_or(&0))
+            .sum();
     }
 
     ways_to_reach[output_joltage as usize]
