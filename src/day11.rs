@@ -104,7 +104,63 @@ pub fn part1(input: &Grid) -> usize {
         .count()
 }
 
+fn part2_step(grid: &Grid) -> Grid {
+    grid.iter()
+        .map(|(pos, tile)| (pos.clone(), part2_step_pos(grid, pos, tile)))
+        .collect()
+}
+
+fn part2_step_pos(grid: &Grid, pos: &Vector2D, tile: &Tile) -> Tile {
+    match tile {
+        Tile::Floor => Tile::Floor,
+        Tile::Empty => {
+            if part2_count_neighbour_seats(grid, pos) == 0 {
+                Tile::Occupied
+            } else {
+                Tile::Empty
+            }
+        }
+        Tile::Occupied => {
+            if part2_count_neighbour_seats(grid, pos) >= 5 {
+                Tile::Empty
+            } else {
+                Tile::Occupied
+            }
+        }
+    }
+}
+
+fn part2_count_neighbour_seats(grid: &Grid, pos: &Vector2D) -> usize {
+    let mut count = 0;
+    for x in -1..=1 {
+        for y in -1..=1 {
+            if x == 0 && y == 0 {
+                continue;
+            }
+            let step = Vector2D::new(x, y);
+            let mut next_pos = pos.clone() + step;
+            while let Some(Tile::Floor) = grid.get(&next_pos) {
+                next_pos += step;
+            }
+            if let Some(Tile::Occupied) = grid.get(&next_pos) {
+                count += 1
+            }
+        }
+    }
+    count
+}
+
 #[aoc(day11, part2)]
 pub fn part2(input: &Grid) -> usize {
-    todo!()
+    let mut grid = input.clone();
+    loop {
+        let new_grid = part2_step(&grid);
+        if new_grid == grid {
+            break;
+        }
+        grid = new_grid;
+    }
+    grid.values()
+        .filter(|&&tile| tile == Tile::Occupied)
+        .count()
 }
