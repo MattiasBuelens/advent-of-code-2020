@@ -19,42 +19,6 @@ impl Orientation {
             Orientation::East => Vector2D::new(1, 0),
         }
     }
-
-    fn rotate_left(&self) -> Orientation {
-        match *self {
-            Orientation::North => Orientation::West,
-            Orientation::West => Orientation::South,
-            Orientation::South => Orientation::East,
-            Orientation::East => Orientation::North,
-        }
-    }
-
-    fn rotate_right(&self) -> Orientation {
-        match *self {
-            Orientation::North => Orientation::East,
-            Orientation::East => Orientation::South,
-            Orientation::South => Orientation::West,
-            Orientation::West => Orientation::North,
-        }
-    }
-
-    fn flip(&self) -> Orientation {
-        match *self {
-            Orientation::North => Orientation::South,
-            Orientation::South => Orientation::North,
-            Orientation::West => Orientation::East,
-            Orientation::East => Orientation::West,
-        }
-    }
-
-    fn rotate(&self, degrees: i32) -> Orientation {
-        match degrees {
-            90 => self.rotate_left(),
-            180 => self.flip(),
-            270 => self.rotate_right(),
-            _ => panic!("invalid degrees: {}", degrees),
-        }
-    }
 }
 
 impl FromStr for Orientation {
@@ -106,20 +70,20 @@ pub fn input_generator(input: &str) -> Vec<Instruction> {
 #[aoc(day12, part1)]
 pub fn part1(input: &[Instruction]) -> i32 {
     let mut pos = Vector2D::new(0, 0);
-    let mut orientation = Orientation::East;
+    let mut orientation = Vector2D::new(1, 0);
     for instruction in input {
         match *instruction {
             Instruction::Move(direction, steps) => {
                 pos += direction.step() * steps;
             }
             Instruction::Left(degrees) => {
-                orientation = orientation.rotate(degrees);
+                orientation = rotate_left(orientation, degrees);
             }
             Instruction::Right(degrees) => {
-                orientation = orientation.rotate(360 - degrees);
+                orientation = rotate_left(orientation, 360 - degrees);
             }
             Instruction::Forward(steps) => {
-                pos += orientation.step() * steps;
+                pos += orientation * steps;
             }
         }
     }
