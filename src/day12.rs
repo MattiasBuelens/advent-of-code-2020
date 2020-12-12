@@ -13,8 +13,8 @@ pub enum Orientation {
 impl Orientation {
     fn step(&self) -> Vector2D {
         match *self {
-            Orientation::North => Vector2D::new(0, -1),
-            Orientation::South => Vector2D::new(0, 1),
+            Orientation::North => Vector2D::new(0, 1),
+            Orientation::South => Vector2D::new(0, -1),
             Orientation::West => Vector2D::new(-1, 0),
             Orientation::East => Vector2D::new(1, 0),
         }
@@ -129,7 +129,7 @@ pub fn part1(input: &[Instruction]) -> i32 {
 #[aoc(day12, part2)]
 pub fn part2(input: &[Instruction]) -> i32 {
     let mut ship = Vector2D::new(0, 0);
-    let mut waypoint = Vector2D::new(10, -1);
+    let mut waypoint = Vector2D::new(10, 1);
     for instruction in input {
         match *instruction {
             Instruction::Move(direction, steps) => {
@@ -151,9 +151,9 @@ pub fn part2(input: &[Instruction]) -> i32 {
 
 fn rotate_left(pos: Vector2D, degrees: i32) -> Vector2D {
     match degrees {
-        90 => Vector2D::new(pos.y, -pos.x),
+        90 => Vector2D::new(-pos.y, pos.x),
         180 => Vector2D::new(-pos.x, -pos.y),
-        270 => Vector2D::new(-pos.y, pos.x),
+        270 => Vector2D::new(pos.y, -pos.x),
         _ => panic!("invalid degrees: {}", degrees),
     }
 }
