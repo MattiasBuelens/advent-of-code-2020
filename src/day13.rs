@@ -36,8 +36,8 @@ pub fn part1((earliest_time, buses): &Input) -> i32 {
     next_bus * next_waiting_time
 }
 
-#[aoc(day13, part2)]
-pub fn part2((_, buses): &Input) -> i64 {
+#[aoc(day13, part2, chinese_remainder_theorem)]
+pub fn part2_crt((_, buses): &Input) -> i64 {
     // Solve equation system: x % bus[i] = waiting_time[i] (for all i)
     let bus_times: Vec<(i64, i64)> = buses
         .iter()
@@ -66,4 +66,23 @@ pub fn part2((_, buses): &Input) -> i64 {
         .sum::<i64>()
         % big_n;
     earliest_time
+}
+
+#[aoc(day13, part2, iterative)]
+pub fn part2_iterative((_, buses): &Input) -> i64 {
+    let bus_offsets: Vec<(i64, i64)> = buses
+        .iter()
+        .enumerate()
+        .filter_map(|(offset, bus)| bus.map(|bus| (bus as i64, offset as i64)))
+        .collect();
+
+    let mut timestamp: i64 = 0;
+    let mut period: i64 = bus_offsets[0].0;
+    for (bus, offset) in bus_offsets.iter().skip(1) {
+        while (timestamp + offset) % bus != 0 {
+            timestamp += period;
+        }
+        period *= bus;
+    }
+    timestamp
 }
