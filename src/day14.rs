@@ -26,7 +26,26 @@ impl FromStr for Mask {
     }
 }
 
+fn to_binary_digits(num: u64) -> [u8; SIZE] {
+    (0..SIZE)
+        .rev()
+        .map(|shift| if num & (1 << shift) != 0 { 1 } else { 0 })
+        .collect::<Vec<u8>>()
+        .try_into()
+        .unwrap()
+}
+
+fn from_binary_digits(digits: [u8; SIZE]) -> u64 {
+    digits
+        .iter()
+        .fold(0u64, |acc, digit| (acc << 1) | ((*digit != 0) as u64))
+}
+
 impl Mask {
+    fn new() -> Self {
+        Mask { bits: ['0'; SIZE] }
+    }
+
     fn get_mask(&self, digit: char) -> u64 {
         self.bits.iter().enumerate().fold(0u64, |acc, (i, char)| {
             if char == &digit {
@@ -43,6 +62,41 @@ impl Mask {
 
     fn ones_mask(&self) -> u64 {
         self.get_mask('1')
+    }
+
+    fn get_value_part1(&self, mut value: u64) -> u64 {
+        value |= self.ones_mask();
+        value &= !self.zero_mask();
+        value
+    }
+
+    fn get_addresses_part2(&self, input_address: u64) -> Vec<u64> {
+        let mut addresses = Vec::<[u8; SIZE]>::new();
+        addresses.push(to_binary_digits(input_address));
+        for i in 0..SIZE {
+            match self.bits[i] {
+                '0' => {
+                    // do nothing
+                }
+                '1' => {
+                    for address in addresses.iter_mut() {
+                        address[i] = 1;
+                    }
+                }
+                'X' => {
+                    let mut with_ones = addresses.clone();
+                    for address in addresses.iter_mut() {
+                        address[i] = 0;
+                    }
+                    for address in with_ones.iter_mut() {
+                        address[i] = 1;
+                    }
+                    addresses.extend(with_ones);
+                }
+                bit => panic!("invalid mask bit: {}", bit),
+            };
+        }
+        addresses.into_iter().map(from_binary_digits).collect()
     }
 }
 
@@ -80,8 +134,7 @@ struct Machine {
     program: Vec<Instruction>,
     pc: usize,
     memory: HashMap<u64, u64>,
-    zero_mask: u64,
-    one_mask: u64,
+    mask: Mask,
 }
 
 impl Machine {
@@ -90,24 +143,40 @@ impl Machine {
             program,
             pc: 0,
             memory: HashMap::new(),
-            zero_mask: 0,
-            one_mask: 0,
+            mask: Mask::new(),
         }
     }
 
-    fn step(&mut self) -> Option<()> {
+    fn step_part1(&mut self) -> Option<()> {
         if self.pc >= self.program.len() {
             return None;
         }
         match self.program[self.pc] {
             Instruction::Mask { mask } => {
-                self.zero_mask = mask.zero_mask();
-                self.one_mask = mask.ones_mask();
+                self.mask = mask;
             }
-            Instruction::Memory { address, mut value } => {
-                value |= self.one_mask;
-                value &= !self.zero_mask;
+            Instruction::Memory { address, value } => {
+                let value = self.mask.get_value_part1(value);
                 self.memory.insert(address, value);
+            }
+        };
+        self.pc += 1;
+        Some(())
+    }
+
+    fn step_part2(&mut self) -> Option<()> {
+        if self.pc >= self.program.len() {
+            return None;
+        }
+        match self.program[self.pc] {
+            Instruction::Mask { mask } => {
+                self.mask = mask;
+            }
+            Instruction::Memory { address, value } => {
+                let addresses = self.mask.get_addresses_part2(address);
+                for address in addresses {
+                    self.memory.insert(address, value);
+                }
             }
         };
         self.pc += 1;
@@ -123,11 +192,13 @@ pub fn input_generator(input: &str) -> Vec<Instruction> {
 #[aoc(day14, part1)]
 pub fn part1(input: &[Instruction]) -> u64 {
     let mut machine = Machine::new(input.to_vec());
-    while let Some(_) = machine.step() {}
+    while let Some(_) = machine.step_part1() {}
     machine.memory.values().sum()
 }
 
 #[aoc(day14, part2)]
-pub fn part2(input: &[Instruction]) -> i32 {
-    todo!()
+pub fn part2(input: &[Instruction]) -> u64 {
+    let mut machine = Machine::new(input.to_vec());
+    while let Some(_) = machine.step_part2() {}
+    machine.memory.values().sum()
 }
