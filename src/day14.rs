@@ -4,9 +4,27 @@ use std::str::FromStr;
 
 const SIZE: usize = 36;
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum MaskBit {
+    ZERO,
+    ONE,
+    FLOATING,
+}
+
+impl MaskBit {
+    fn from_char(c: char) -> Self {
+        match c {
+            '0' => MaskBit::ZERO,
+            '1' => MaskBit::ONE,
+            'X' => MaskBit::FLOATING,
+            _ => panic!("invalid mask bit: {}", c),
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone)]
 pub struct Mask {
-    bits: [char; SIZE],
+    bits: [MaskBit; SIZE],
 }
 
 impl FromStr for Mask {
@@ -15,14 +33,11 @@ impl FromStr for Mask {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let bits = s
             .chars()
-            .map(|char| match char {
-                '0' | '1' | 'X' => char,
-                _ => panic!("invalid bit: {}", char),
-            })
-            .collect::<Vec<_>>();
-        Ok(Mask {
-            bits: bits.try_into().unwrap(),
-        })
+            .map(MaskBit::from_char)
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap();
+        Ok(Mask { bits })
     }
 }
 
@@ -43,12 +58,14 @@ fn from_binary_digits(digits: [u8; SIZE]) -> u64 {
 
 impl Mask {
     fn new() -> Self {
-        Mask { bits: ['0'; SIZE] }
+        Mask {
+            bits: [MaskBit::ZERO; SIZE],
+        }
     }
 
-    fn get_mask(&self, digit: char) -> u64 {
-        self.bits.iter().enumerate().fold(0u64, |acc, (i, char)| {
-            if char == &digit {
+    fn get_mask(&self, filter_bit: MaskBit) -> u64 {
+        self.bits.iter().enumerate().fold(0u64, |acc, (i, bit)| {
+            if bit == &filter_bit {
                 acc | (1 << ((SIZE - 1) - i))
             } else {
                 acc
@@ -57,11 +74,11 @@ impl Mask {
     }
 
     fn zero_mask(&self) -> u64 {
-        self.get_mask('0')
+        self.get_mask(MaskBit::ZERO)
     }
 
     fn ones_mask(&self) -> u64 {
-        self.get_mask('1')
+        self.get_mask(MaskBit::ONE)
     }
 
     fn get_value_part1(&self, mut value: u64) -> u64 {
@@ -75,15 +92,15 @@ impl Mask {
         addresses.push(to_binary_digits(input_address));
         for i in 0..SIZE {
             match self.bits[i] {
-                '0' => {
+                MaskBit::ZERO => {
                     // do nothing
                 }
-                '1' => {
+                MaskBit::ONE => {
                     for address in addresses.iter_mut() {
                         address[i] = 1;
                     }
                 }
-                'X' => {
+                MaskBit::FLOATING => {
                     let mut with_ones = addresses.clone();
                     for address in addresses.iter_mut() {
                         address[i] = 0;
@@ -93,7 +110,6 @@ impl Mask {
                     }
                     addresses.extend(with_ones);
                 }
-                bit => panic!("invalid mask bit: {}", bit),
             };
         }
         addresses.into_iter().map(from_binary_digits).collect()
