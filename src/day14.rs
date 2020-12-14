@@ -1,10 +1,54 @@
-use std::collections::{HashMap, HashSet};
-use std::ops::Not;
+use std::collections::HashMap;
+use std::convert::TryInto;
 use std::str::FromStr;
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+const SIZE: usize = 36;
+
+#[derive(Debug, Copy, Clone)]
+pub struct Mask {
+    bits: [char; SIZE],
+}
+
+impl FromStr for Mask {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let bits = s
+            .chars()
+            .map(|char| match char {
+                '0' | '1' | 'X' => char,
+                _ => panic!("invalid bit: {}", char),
+            })
+            .collect::<Vec<_>>();
+        Ok(Mask {
+            bits: bits.try_into().unwrap(),
+        })
+    }
+}
+
+impl Mask {
+    fn get_mask(&self, digit: char) -> u64 {
+        self.bits.iter().enumerate().fold(0u64, |acc, (i, char)| {
+            if char == &digit {
+                acc | (1 << ((SIZE - 1) - i))
+            } else {
+                acc
+            }
+        })
+    }
+
+    fn zero_mask(&self) -> u64 {
+        self.get_mask('0')
+    }
+
+    fn ones_mask(&self) -> u64 {
+        self.get_mask('1')
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
 pub enum Instruction {
-    Mask { zero: u64, one: u64 },
+    Mask { mask: Mask },
     Memory { address: u64, value: u64 },
 }
 
@@ -16,21 +60,8 @@ impl FromStr for Instruction {
         let left = parts.next().unwrap();
         let right = parts.next().unwrap();
         if left == "mask" {
-            let zero = right.chars().rev().enumerate().fold(0u64, |acc, (i, char)| {
-                if char == '0' {
-                    acc | (1 << i)
-                } else {
-                    acc
-                }
-            });
-            let one = right.chars().rev().enumerate().fold(0u64, |acc, (i, char)| {
-                if char == '1' {
-                    acc | (1 << i)
-                } else {
-                    acc
-                }
-            });
-            Ok(Instruction::Mask { zero, one })
+            let mask = right.parse::<Mask>().unwrap();
+            Ok(Instruction::Mask { mask })
         } else {
             let address = left
                 .strip_prefix("mem[")
@@ -69,9 +100,9 @@ impl Machine {
             return None;
         }
         match self.program[self.pc] {
-            Instruction::Mask { zero, one } => {
-                self.zero_mask = zero;
-                self.one_mask = one;
+            Instruction::Mask { mask } => {
+                self.zero_mask = mask.zero_mask();
+                self.one_mask = mask.ones_mask();
             }
             Instruction::Memory { address, mut value } => {
                 value |= self.one_mask;
