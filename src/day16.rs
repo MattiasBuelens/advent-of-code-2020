@@ -6,6 +6,14 @@ pub struct Field {
     ranges: Vec<(i32, i32)>,
 }
 
+impl Field {
+    fn is_valid(&self, value: i32) -> bool {
+        self.ranges
+            .iter()
+            .any(|&(start, end)| (start..=end).contains(&value))
+    }
+}
+
 #[derive(Debug)]
 pub struct Input {
     fields: Vec<Field>,
@@ -62,7 +70,12 @@ pub fn input_generator(input: &str) -> Input {
 
 #[aoc(day16, part1)]
 pub fn part1(input: &Input) -> i32 {
-    todo!()
+    let invalid_values = input.nearby_tickets.iter().flat_map(|ticket| {
+        ticket
+            .iter()
+            .filter(|&&value| !input.fields.iter().any(|field| field.is_valid(value)))
+    });
+    invalid_values.sum()
 }
 
 #[aoc(day16, part2)]
