@@ -4,6 +4,15 @@ enum Part {
     Part2,
 }
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum Token {
+    Lit(i64),
+    Add,
+    Mul,
+    OpenParen,
+    CloseParen,
+}
+
 #[derive(Debug)]
 pub enum Expression {
     Lit(i64),
@@ -11,105 +20,120 @@ pub enum Expression {
     Mul(Box<Expression>, Box<Expression>),
 }
 
-fn skip_whitespace(s: &str) -> &str {
-    s.trim_start_matches(' ')
-}
-
-fn parse_number(mut s: &str) -> Option<(i64, &str)> {
-    s = skip_whitespace(s);
-    let mut len = 0;
-    for char in s.chars() {
-        if char.is_ascii_digit() {
-            len += 1;
+fn lex(s: &str) -> Vec<Token> {
+    let mut result = vec![];
+    let mut chars = s.chars().peekable();
+    while let Some(char) = chars.next() {
+        if char.is_ascii_whitespace() {
+            continue;
+        } else if char.is_ascii_digit() {
+            let mut digits = String::new();
+            digits.push(char);
+            while let Some(char) = chars.peek() {
+                if char.is_ascii_digit() {
+                    digits.push(chars.next().unwrap())
+                } else {
+                    break;
+                }
+            }
+            result.push(Token::Lit(digits.parse().unwrap()));
         } else {
-            break;
+            result.push(match char {
+                '(' => Token::OpenParen,
+                ')' => Token::CloseParen,
+                '+' => Token::Add,
+                '*' => Token::Mul,
+                c => panic!("unknown token: {}", c),
+            });
         }
     }
-    let (num, rest) = s.split_at(len);
-    num.parse().ok().map(|num| (num, rest))
+    result
 }
 
-fn parse_number_or_parens(mut s: &str, part: Part) -> Option<(Expression, &str)> {
-    s = skip_whitespace(s);
-    if s.is_empty() {
-        return None;
-    }
-    if let Some(s) = s.strip_prefix('(') {
-        let (expr, s) = parse_expression(s, part)?;
-        let s = s.strip_prefix(')')?;
-        Some((expr, s))
-    } else {
-        let (num, s) = parse_number(s)?;
-        let expr = Expression::Lit(num);
-        Some((expr, s))
+fn consume_token(tokens: &[Token], expected: Token) -> &[Token] {
+    let (first, rest) = tokens.split_first().unwrap();
+    assert_eq!(first, &expected);
+    rest
+}
+
+fn parse_number_or_parens(tokens: &[Token], part: Part) -> Option<(Expression, &[Token])> {
+    match tokens.split_first() {
+        Some((Token::OpenParen, rest)) => {
+            let (expr, rest) = parse_expression(rest, part)?;
+            let rest = consume_token(rest, Token::CloseParen);
+            Some((expr, rest))
+        }
+        Some((Token::Lit(num), rest)) => {
+            let expr = Expression::Lit(*num);
+            Some((expr, rest))
+        }
+        _ => None,
     }
 }
 
-fn parse_expression_part1(mut s: &str) -> Option<(Expression, &str)> {
-    s = skip_whitespace(s);
-    if s.is_empty() {
+fn parse_expression_part1(tokens: &[Token]) -> Option<(Expression, &[Token])> {
+    if tokens.is_empty() {
         return None;
     }
-    let (mut expr, mut s) = parse_number_or_parens(s, Part::Part1)?;
+    let (mut expr, mut tokens) = parse_number_or_parens(tokens, Part::Part1)?;
     loop {
-        s = skip_whitespace(s);
-        if let Some(rest) = s.strip_prefix('+') {
-            let (rhs_expr, rest) = parse_number_or_parens(rest, Part::Part1)?;
-            expr = Expression::Add(Box::new(expr), Box::new(rhs_expr));
-            s = rest
-        } else if let Some(rest) = s.strip_prefix('*') {
-            let (rhs_expr, rest) = parse_number_or_parens(rest, Part::Part1)?;
-            expr = Expression::Mul(Box::new(expr), Box::new(rhs_expr));
-            s = rest;
-        } else {
-            break;
+        match tokens.split_first() {
+            Some((Token::Add, rest)) => {
+                let (rhs_expr, rest) = parse_number_or_parens(rest, Part::Part1)?;
+                expr = Expression::Add(Box::new(expr), Box::new(rhs_expr));
+                tokens = rest
+            }
+            Some((Token::Mul, rest)) => {
+                let (rhs_expr, rest) = parse_number_or_parens(rest, Part::Part1)?;
+                expr = Expression::Mul(Box::new(expr), Box::new(rhs_expr));
+                tokens = rest;
+            }
+            _ => break,
         }
     }
-    Some((expr, s))
+    Some((expr, tokens))
 }
 
-fn parse_term_part2(mut s: &str) -> Option<(Expression, &str)> {
-    s = skip_whitespace(s);
-    if s.is_empty() {
+fn parse_term_part2(tokens: &[Token]) -> Option<(Expression, &[Token])> {
+    if tokens.is_empty() {
         return None;
     }
-    let (mut expr, mut s) = parse_number_or_parens(s, Part::Part2)?;
+    let (mut expr, mut tokens) = parse_number_or_parens(tokens, Part::Part2)?;
     loop {
-        s = skip_whitespace(s);
-        if let Some(rest) = s.strip_prefix('+') {
-            let (rhs_expr, rest) = parse_number_or_parens(rest, Part::Part2)?;
-            expr = Expression::Add(Box::new(expr), Box::new(rhs_expr));
-            s = rest
-        } else {
-            break;
+        match tokens.split_first() {
+            Some((Token::Add, rest)) => {
+                let (rhs_expr, rest) = parse_number_or_parens(rest, Part::Part2)?;
+                expr = Expression::Add(Box::new(expr), Box::new(rhs_expr));
+                tokens = rest
+            }
+            _ => break,
         }
     }
-    Some((expr, s))
+    Some((expr, tokens))
 }
 
-fn parse_expression_part2(mut s: &str) -> Option<(Expression, &str)> {
-    s = skip_whitespace(s);
-    if s.is_empty() {
+fn parse_expression_part2(tokens: &[Token]) -> Option<(Expression, &[Token])> {
+    if tokens.is_empty() {
         return None;
     }
-    let (mut expr, mut s) = parse_term_part2(s)?;
+    let (mut expr, mut tokens) = parse_term_part2(tokens)?;
     loop {
-        s = skip_whitespace(s);
-        if let Some(rest) = s.strip_prefix('*') {
-            let (rhs_expr, rest) = parse_term_part2(rest)?;
-            expr = Expression::Mul(Box::new(expr), Box::new(rhs_expr));
-            s = rest;
-        } else {
-            break;
+        match tokens.split_first() {
+            Some((Token::Mul, rest)) => {
+                let (rhs_expr, rest) = parse_term_part2(rest)?;
+                expr = Expression::Mul(Box::new(expr), Box::new(rhs_expr));
+                tokens = rest;
+            }
+            _ => break,
         }
     }
-    Some((expr, s))
+    Some((expr, tokens))
 }
 
-fn parse_expression(s: &str, part: Part) -> Option<(Expression, &str)> {
+fn parse_expression(tokens: &[Token], part: Part) -> Option<(Expression, &[Token])> {
     match part {
-        Part::Part1 => parse_expression_part1(s),
-        Part::Part2 => parse_expression_part2(s),
+        Part::Part1 => parse_expression_part1(tokens),
+        Part::Part2 => parse_expression_part2(tokens),
     }
 }
 
@@ -122,12 +146,12 @@ fn eval_expression(expr: &Expression) -> i64 {
 }
 
 #[aoc_generator(day18)]
-pub fn input_generator(input: &str) -> Vec<String> {
-    input.lines().map(|line| line.to_owned()).collect()
+pub fn input_generator(input: &str) -> Vec<Vec<Token>> {
+    input.lines().map(|line| lex(line)).collect()
 }
 
 #[aoc(day18, part1)]
-pub fn part1(input: &[String]) -> i64 {
+pub fn part1(input: &[Vec<Token>]) -> i64 {
     input
         .iter()
         .map(|line| {
@@ -139,7 +163,7 @@ pub fn part1(input: &[String]) -> i64 {
 }
 
 #[aoc(day18, part2)]
-pub fn part2(input: &[String]) -> i64 {
+pub fn part2(input: &[Vec<Token>]) -> i64 {
     input
         .iter()
         .map(|line| {
