@@ -29,7 +29,7 @@ fn parse_number(mut s: &str) -> Option<(i64, &str)> {
     num.parse().ok().map(|num| (num, rest))
 }
 
-fn parse_term(mut s: &str, part: Part) -> Option<(Expression, &str)> {
+fn parse_number_or_parens(mut s: &str, part: Part) -> Option<(Expression, &str)> {
     s = skip_whitespace(s);
     if s.is_empty() {
         return None;
@@ -50,15 +50,15 @@ fn parse_expression_part1(mut s: &str) -> Option<(Expression, &str)> {
     if s.is_empty() {
         return None;
     }
-    let (mut expr, mut s) = parse_term(s, Part::Part1)?;
+    let (mut expr, mut s) = parse_number_or_parens(s, Part::Part1)?;
     loop {
         s = skip_whitespace(s);
         if let Some(rest) = s.strip_prefix('+') {
-            let (rhs_expr, rest) = parse_term(rest, Part::Part1)?;
+            let (rhs_expr, rest) = parse_number_or_parens(rest, Part::Part1)?;
             expr = Expression::Add(Box::new(expr), Box::new(rhs_expr));
             s = rest
         } else if let Some(rest) = s.strip_prefix('*') {
-            let (rhs_expr, rest) = parse_term(rest, Part::Part1)?;
+            let (rhs_expr, rest) = parse_number_or_parens(rest, Part::Part1)?;
             expr = Expression::Mul(Box::new(expr), Box::new(rhs_expr));
             s = rest;
         } else {
@@ -68,8 +68,42 @@ fn parse_expression_part1(mut s: &str) -> Option<(Expression, &str)> {
     Some((expr, s))
 }
 
+fn parse_term_part2(mut s: &str) -> Option<(Expression, &str)> {
+    s = skip_whitespace(s);
+    if s.is_empty() {
+        return None;
+    }
+    let (mut expr, mut s) = parse_number_or_parens(s, Part::Part2)?;
+    loop {
+        s = skip_whitespace(s);
+        if let Some(rest) = s.strip_prefix('+') {
+            let (rhs_expr, rest) = parse_number_or_parens(rest, Part::Part2)?;
+            expr = Expression::Add(Box::new(expr), Box::new(rhs_expr));
+            s = rest
+        } else {
+            break;
+        }
+    }
+    Some((expr, s))
+}
+
 fn parse_expression_part2(mut s: &str) -> Option<(Expression, &str)> {
-    todo!()
+    s = skip_whitespace(s);
+    if s.is_empty() {
+        return None;
+    }
+    let (mut expr, mut s) = parse_term_part2(s)?;
+    loop {
+        s = skip_whitespace(s);
+        if let Some(rest) = s.strip_prefix('*') {
+            let (rhs_expr, rest) = parse_term_part2(rest)?;
+            expr = Expression::Mul(Box::new(expr), Box::new(rhs_expr));
+            s = rest;
+        } else {
+            break;
+        }
+    }
+    Some((expr, s))
 }
 
 fn parse_expression(s: &str, part: Part) -> Option<(Expression, &str)> {
@@ -106,5 +140,12 @@ pub fn part1(input: &[String]) -> i64 {
 
 #[aoc(day18, part2)]
 pub fn part2(input: &[String]) -> i64 {
-    todo!()
+    input
+        .iter()
+        .map(|line| {
+            let (expr, rest) = parse_expression(line, Part::Part2).unwrap();
+            assert!(rest.is_empty());
+            eval_expression(&expr)
+        })
+        .sum()
 }
