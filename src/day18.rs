@@ -72,9 +72,6 @@ fn parse_number_or_parens(tokens: &[Token], part: Part) -> Option<(Expression, &
 }
 
 fn parse_expression_part1(tokens: &[Token]) -> Option<(Expression, &[Token])> {
-    if tokens.is_empty() {
-        return None;
-    }
     let (mut expr, mut tokens) = parse_number_or_parens(tokens, Part::Part1)?;
     loop {
         match tokens.split_first() {
@@ -95,9 +92,6 @@ fn parse_expression_part1(tokens: &[Token]) -> Option<(Expression, &[Token])> {
 }
 
 fn parse_term_part2(tokens: &[Token]) -> Option<(Expression, &[Token])> {
-    if tokens.is_empty() {
-        return None;
-    }
     let (mut expr, mut tokens) = parse_number_or_parens(tokens, Part::Part2)?;
     loop {
         match tokens.split_first() {
@@ -113,9 +107,6 @@ fn parse_term_part2(tokens: &[Token]) -> Option<(Expression, &[Token])> {
 }
 
 fn parse_expression_part2(tokens: &[Token]) -> Option<(Expression, &[Token])> {
-    if tokens.is_empty() {
-        return None;
-    }
     let (mut expr, mut tokens) = parse_term_part2(tokens)?;
     loop {
         match tokens.split_first() {
