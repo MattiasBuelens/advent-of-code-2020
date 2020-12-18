@@ -118,6 +118,12 @@ fn parse_expression(tokens: &[Token], part: Part) -> Option<(Expression, &[Token
     }
 }
 
+fn parse_full_expression(tokens: &[Token], part: Part) -> Option<Expression> {
+    let (expr, rest) = parse_expression(tokens, part)?;
+    assert!(rest.is_empty());
+    Some(expr)
+}
+
 fn eval_expression(expr: &Expression) -> i64 {
     match expr {
         Expression::Lit(num) => *num,
@@ -135,11 +141,7 @@ pub fn input_generator(input: &str) -> Vec<Vec<Token>> {
 pub fn part1(input: &[Vec<Token>]) -> i64 {
     input
         .iter()
-        .map(|line| {
-            let (expr, rest) = parse_expression(line, Part::Part1).unwrap();
-            assert!(rest.is_empty());
-            eval_expression(&expr)
-        })
+        .map(|tokens| eval_expression(&parse_full_expression(tokens, Part::Part1).unwrap()))
         .sum()
 }
 
@@ -147,10 +149,6 @@ pub fn part1(input: &[Vec<Token>]) -> i64 {
 pub fn part2(input: &[Vec<Token>]) -> i64 {
     input
         .iter()
-        .map(|line| {
-            let (expr, rest) = parse_expression(line, Part::Part2).unwrap();
-            assert!(rest.is_empty());
-            eval_expression(&expr)
-        })
+        .map(|tokens| eval_expression(&parse_full_expression(tokens, Part::Part2).unwrap()))
         .sum()
 }
