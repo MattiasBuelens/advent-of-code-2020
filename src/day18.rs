@@ -73,14 +73,14 @@ fn parse_number_or_parens(tokens: &[Token], part: Part) -> Option<(Expression, &
 
 fn parse_expression_part1(tokens: &[Token]) -> Option<(Expression, &[Token])> {
     let (mut expr, mut tokens) = parse_number_or_parens(tokens, Part::Part1)?;
-    loop {
-        match tokens.split_first() {
-            Some((Token::Add, rest)) => {
+    while let Some((token, rest)) = tokens.split_first() {
+        match token {
+            Token::Add => {
                 let (rhs_expr, rest) = parse_number_or_parens(rest, Part::Part1)?;
                 expr = Expression::Add(Box::new(expr), Box::new(rhs_expr));
                 tokens = rest
             }
-            Some((Token::Mul, rest)) => {
+            Token::Mul => {
                 let (rhs_expr, rest) = parse_number_or_parens(rest, Part::Part1)?;
                 expr = Expression::Mul(Box::new(expr), Box::new(rhs_expr));
                 tokens = rest;
@@ -93,30 +93,20 @@ fn parse_expression_part1(tokens: &[Token]) -> Option<(Expression, &[Token])> {
 
 fn parse_term_part2(tokens: &[Token]) -> Option<(Expression, &[Token])> {
     let (mut expr, mut tokens) = parse_number_or_parens(tokens, Part::Part2)?;
-    loop {
-        match tokens.split_first() {
-            Some((Token::Add, rest)) => {
-                let (rhs_expr, rest) = parse_number_or_parens(rest, Part::Part2)?;
-                expr = Expression::Add(Box::new(expr), Box::new(rhs_expr));
-                tokens = rest
-            }
-            _ => break,
-        }
+    while let Some((Token::Add, rest)) = tokens.split_first() {
+        let (rhs_expr, rest) = parse_number_or_parens(rest, Part::Part2)?;
+        expr = Expression::Add(Box::new(expr), Box::new(rhs_expr));
+        tokens = rest
     }
     Some((expr, tokens))
 }
 
 fn parse_expression_part2(tokens: &[Token]) -> Option<(Expression, &[Token])> {
     let (mut expr, mut tokens) = parse_term_part2(tokens)?;
-    loop {
-        match tokens.split_first() {
-            Some((Token::Mul, rest)) => {
-                let (rhs_expr, rest) = parse_term_part2(rest)?;
-                expr = Expression::Mul(Box::new(expr), Box::new(rhs_expr));
-                tokens = rest;
-            }
-            _ => break,
-        }
+    while let Some((Token::Mul, rest)) = tokens.split_first() {
+        let (rhs_expr, rest) = parse_term_part2(rest)?;
+        expr = Expression::Mul(Box::new(expr), Box::new(rhs_expr));
+        tokens = rest;
     }
     Some((expr, tokens))
 }
