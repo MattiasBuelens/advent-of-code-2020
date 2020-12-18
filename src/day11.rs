@@ -30,6 +30,7 @@ pub fn input_generator(input: &str) -> Grid {
         .collect()
 }
 
+#[allow(unused)]
 fn print_grid(grid: &Grid) {
     let width = grid.keys().map(|pos| pos.x).max().unwrap();
     let height = grid.keys().map(|pos| pos.y).max().unwrap();

@@ -166,7 +166,7 @@ pub fn input_generator(input: &str) -> PocketDimension3D {
 #[aoc(day17, part1)]
 pub fn part1(input: &PocketDimension3D) -> usize {
     let mut dimension = input.clone();
-    for i in 0..6 {
+    for _ in 0..6 {
         dimension = dimension.step();
     }
     dimension.cubes.len()
@@ -175,7 +175,7 @@ pub fn part1(input: &PocketDimension3D) -> usize {
 #[aoc(day17, part2)]
 pub fn part2(input: &PocketDimension3D) -> usize {
     let mut dimension = PocketDimension4D::from(input.clone());
-    for i in 0..6 {
+    for _ in 0..6 {
         dimension = dimension.step();
     }
     dimension.cubes.len()
