@@ -1,4 +1,5 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::iter::FromIterator;
 use std::str::FromStr;
 
 #[derive(Debug, Clone)]
@@ -46,7 +47,7 @@ fn match_rule_in_state<'a>(
     rule: &Rule,
     rules: &HashMap<usize, Rule>,
     state: &'a str,
-) -> Vec<&'a str> {
+) -> HashSet<&'a str> {
     match rule {
         Rule::Single(c) => state.strip_prefix(*c).into_iter().collect(),
         Rule::Union(options) => {
@@ -55,11 +56,13 @@ fn match_rule_in_state<'a>(
                 .iter()
                 .flat_map(|sequence| {
                     // Match all sub rules in sequence
-                    sequence.iter().fold(vec![state], |states, sub_rule| {
-                        match_rule(*sub_rule, rules, states.as_ref())
-                    })
+                    sequence
+                        .iter()
+                        .fold(HashSet::from_iter(Some(state)), |states, sub_rule| {
+                            match_rule(*sub_rule, rules, &states)
+                        })
                 })
-                .collect::<Vec<&'a str>>()
+                .collect()
         }
     }
 }
@@ -67,10 +70,10 @@ fn match_rule_in_state<'a>(
 fn match_rule<'a>(
     rule_id: usize,
     rules: &HashMap<usize, Rule>,
-    states: &[&'a str],
-) -> Vec<&'a str> {
+    states: &HashSet<&'a str>,
+) -> HashSet<&'a str> {
     if states.is_empty() {
-        return vec![];
+        return HashSet::new();
     }
     let rule = rules.get(&rule_id).unwrap();
     // Advance through all possible states simultaneously
@@ -81,9 +84,9 @@ fn match_rule<'a>(
 }
 
 fn match_rule_complete(rule_id: usize, rules: &HashMap<usize, Rule>, s: &str) -> bool {
-    let results = match_rule(rule_id, rules, &vec![s]);
+    let final_states = match_rule(rule_id, rules, &HashSet::from_iter(Some(s)));
     // At least one match must have consumed the entire string
-    results.iter().filter(|m| m.is_empty()).next().is_some()
+    final_states.contains(&"")
 }
 
 #[aoc(day19, part1)]
