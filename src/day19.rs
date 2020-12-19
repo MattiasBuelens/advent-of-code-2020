@@ -42,10 +42,43 @@ pub fn input_generator(input: &str) -> Input {
     (rules, messages)
 }
 
+fn match_rule<'a>(rule_id: usize, rules: &HashMap<usize, Rule>, s: &'a str) -> Option<&'a str> {
+    let rule = rules.get(&rule_id).unwrap();
+    match rule {
+        Rule::Single(c) => s.strip_prefix(*c),
+        Rule::Union(options) => {
+            // Match any of the options
+            'option_loop: for sequence in options {
+                // Match all sub rules in sequence
+                let mut s = s;
+                for sub_rule in sequence {
+                    if let Some(rest) = match_rule(*sub_rule, rules, s) {
+                        s = rest;
+                    } else {
+                        // Sequence does not match
+                        continue 'option_loop;
+                    }
+                }
+                return Some(s);
+            }
+            // No option matched
+            None
+        }
+    }
+}
+
+fn match_rule_complete(rule_id: usize, rules: &HashMap<usize, Rule>, s: &str) -> bool {
+    let m = match_rule(rule_id, rules, s);
+    matches!(m, Some(""))
+}
+
 #[aoc(day19, part1)]
-pub fn part1(input: &Input) -> i32 {
-    dbg!(input);
-    todo!()
+pub fn part1(input: &Input) -> usize {
+    let (rules, messages) = input;
+    messages
+        .iter()
+        .filter(|message| match_rule_complete(0, rules, message))
+        .count()
 }
 
 #[aoc(day19, part2)]
