@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::str::FromStr;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Rule {
     Single(char),
     Union(Vec<Vec<usize>>),
@@ -42,34 +42,42 @@ pub fn input_generator(input: &str) -> Input {
     (rules, messages)
 }
 
-fn match_rule<'a>(rule_id: usize, rules: &HashMap<usize, Rule>, s: &'a str) -> Option<&'a str> {
-    let rule = rules.get(&rule_id).unwrap();
-    match rule {
-        Rule::Single(c) => s.strip_prefix(*c),
-        Rule::Union(options) => {
-            // Match any of the options
-            'option_loop: for sequence in options {
-                // Match all sub rules in sequence
-                let mut s = s;
-                for sub_rule in sequence {
-                    if let Some(rest) = match_rule(*sub_rule, rules, s) {
-                        s = rest;
-                    } else {
-                        // Sequence does not match
-                        continue 'option_loop;
-                    }
-                }
-                return Some(s);
-            }
-            // No option matched
-            None
-        }
+fn match_rule<'a>(
+    rule_id: usize,
+    rules: &HashMap<usize, Rule>,
+    states: &[&'a str],
+) -> Vec<&'a str> {
+    if states.is_empty() {
+        return vec![];
     }
+    let rule = rules.get(&rule_id).unwrap();
+    // Advance through all of the states
+    states
+        .into_iter()
+        .flat_map(|&state| -> Vec<&'a str> {
+            match rule {
+                Rule::Single(c) => state.strip_prefix(*c).into_iter().collect(),
+                Rule::Union(options) => {
+                    // Try all of the options
+                    options
+                        .iter()
+                        .flat_map(|sequence| {
+                            // Match all sub rules in sequence
+                            sequence.iter().fold(vec![state], |states, sub_rule| {
+                                match_rule(*sub_rule, rules, states.as_ref())
+                            })
+                        })
+                        .collect::<Vec<&'a str>>()
+                }
+            }
+        })
+        .collect()
 }
 
 fn match_rule_complete(rule_id: usize, rules: &HashMap<usize, Rule>, s: &str) -> bool {
-    let m = match_rule(rule_id, rules, s);
-    matches!(m, Some(""))
+    let results = match_rule(rule_id, rules, &vec![s]);
+    // At least one match must have consumed the entire string
+    results.iter().filter(|m| m.is_empty()).next().is_some()
 }
 
 #[aoc(day19, part1)]
@@ -82,6 +90,14 @@ pub fn part1(input: &Input) -> usize {
 }
 
 #[aoc(day19, part2)]
-pub fn part2(input: &Input) -> i32 {
-    todo!()
+pub fn part2(input: &Input) -> usize {
+    let (rules, messages) = input;
+    let mut rules = rules.clone();
+    rules.insert(8, "42 | 42 8".parse().unwrap());
+    rules.insert(11, "42 31 | 42 11 31".parse().unwrap());
+
+    messages
+        .iter()
+        .filter(|message| match_rule_complete(0, &rules, message))
+        .count()
 }
