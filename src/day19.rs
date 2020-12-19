@@ -42,6 +42,28 @@ pub fn input_generator(input: &str) -> Input {
     (rules, messages)
 }
 
+fn match_rule_in_state<'a>(
+    rule: &Rule,
+    rules: &HashMap<usize, Rule>,
+    state: &'a str,
+) -> Vec<&'a str> {
+    match rule {
+        Rule::Single(c) => state.strip_prefix(*c).into_iter().collect(),
+        Rule::Union(options) => {
+            // Try all of the options
+            options
+                .iter()
+                .flat_map(|sequence| {
+                    // Match all sub rules in sequence
+                    sequence.iter().fold(vec![state], |states, sub_rule| {
+                        match_rule(*sub_rule, rules, states.as_ref())
+                    })
+                })
+                .collect::<Vec<&'a str>>()
+        }
+    }
+}
+
 fn match_rule<'a>(
     rule_id: usize,
     rules: &HashMap<usize, Rule>,
@@ -51,26 +73,10 @@ fn match_rule<'a>(
         return vec![];
     }
     let rule = rules.get(&rule_id).unwrap();
-    // Advance through all of the states
+    // Advance through all possible states simultaneously
     states
         .into_iter()
-        .flat_map(|&state| -> Vec<&'a str> {
-            match rule {
-                Rule::Single(c) => state.strip_prefix(*c).into_iter().collect(),
-                Rule::Union(options) => {
-                    // Try all of the options
-                    options
-                        .iter()
-                        .flat_map(|sequence| {
-                            // Match all sub rules in sequence
-                            sequence.iter().fold(vec![state], |states, sub_rule| {
-                                match_rule(*sub_rule, rules, states.as_ref())
-                            })
-                        })
-                        .collect::<Vec<&'a str>>()
-                }
-            }
-        })
+        .flat_map(|&state| match_rule_in_state(rule, rules, state))
         .collect()
 }
 
