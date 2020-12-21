@@ -149,7 +149,7 @@ pub fn part2(foods: &[Food]) -> String {
     .into_iter()
     .collect::<Vec<_>>();
 
-    solution.sort_by_key(|(_, allergen)| allergen.clone());
+    solution.sort_unstable_by(|(_, allergen1), (_, allergen2)| allergen1.cmp(allergen2));
     solution
         .into_iter()
         .map(|(ingredient, _)| ingredient)
