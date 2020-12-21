@@ -318,6 +318,16 @@ fn count_image_pattern(image: &Image, pattern: &Vec<Vector2D>) -> usize {
     count
 }
 
+#[allow(unused)]
+fn print_image(image: &Image) {
+    for row in image {
+        for &cell in row {
+            print!("{}", if cell { '#' } else { '.' });
+        }
+        println!();
+    }
+}
+
 #[aoc(day20, part2)]
 pub fn part2(input: &Input) -> usize {
     let size = (input.len() as f32).sqrt() as i32;
