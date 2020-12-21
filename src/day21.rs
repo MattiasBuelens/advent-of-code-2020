@@ -39,8 +39,36 @@ pub fn input_generator(input: &str) -> Vec<Food> {
 }
 
 #[aoc(day21, part1)]
-pub fn part1(foods: &[Food]) -> i32 {
-    todo!()
+pub fn part1(foods: &[Food]) -> usize {
+    let mut all_ingredients = foods
+        .iter()
+        .flat_map(|food| food.ingredients.iter().cloned())
+        .collect::<HashSet<_>>();
+    let mut all_allergens = foods
+        .iter()
+        .flat_map(|food| food.allergens.iter().cloned())
+        .collect::<HashSet<_>>();
+
+    let ingredients_without_allergens = all_ingredients
+        .iter()
+        .filter(|&ingredient| {
+            // Check that there is a counterexample for all possible allergens when mapped to this ingredient.
+            all_allergens.iter().all(|allergen| {
+                // Find a counterexample, i.e. any food where this (ingredient, allergen) mapping
+                // would be invalid. That is: if it contains the allergen, but not the ingredient.
+                foods.iter().any(|food| {
+                    food.allergens.contains(allergen) && !food.ingredients.contains(ingredient)
+                })
+            })
+        })
+        .cloned()
+        .collect::<HashSet<_>>();
+
+    let appearances = foods.iter().map(|food| {
+        food.ingredients.intersection(&ingredients_without_allergens).count()
+    }).sum();
+
+    appearances
 }
 
 #[aoc(day21, part2)]
