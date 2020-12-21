@@ -101,14 +101,6 @@ impl Tile {
         tile
     }
 
-    fn flip_horizontal(&self) -> Self {
-        let mut tile = self.clone();
-        for y in 0..TILE_SIZE {
-            tile.grid[y].reverse()
-        }
-        tile
-    }
-
     fn rotate_left(&self) -> Self {
         let mut tile = Self::default();
         for y in 0..TILE_SIZE {
@@ -130,6 +122,7 @@ impl Tile {
     }
 
     fn permutations(&self) -> Vec<Self> {
+        // self.flip_horizontal() == self.flip_vertical().rotate_right().rotate_right()
         vec![
             self.clone(),
             self.rotate_right(),
@@ -255,14 +248,6 @@ fn create_sea_monster_pattern() -> Vec<Vector2D> {
 fn flip_vertical(image: &Image) -> Image {
     let mut image = image.clone();
     image.reverse();
-    image
-}
-
-fn flip_horizontal(image: &Image) -> Image {
-    let mut image = image.clone();
-    for row in image.iter_mut() {
-        row.reverse()
-    }
     image
 }
 
