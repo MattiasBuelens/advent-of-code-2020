@@ -267,20 +267,22 @@ fn flip_horizontal(image: &Image) -> Image {
 }
 
 fn rotate_left(image: &Image) -> Image {
+    let size = image.len();
     let mut new_image = image.clone();
-    for y in 0..TILE_SIZE {
-        for x in 0..TILE_SIZE {
-            new_image[y][x] = image[x][TILE_SIZE - 1 - y];
+    for y in 0..size {
+        for x in 0..size {
+            new_image[y][x] = image[x][size - 1 - y];
         }
     }
     new_image
 }
 
 fn rotate_right(image: &Image) -> Image {
+    let size = image.len();
     let mut new_image = image.clone();
-    for y in 0..TILE_SIZE {
-        for x in 0..TILE_SIZE {
-            new_image[y][x] = image[TILE_SIZE - 1 - x][y];
+    for y in 0..size {
+        for x in 0..size {
+            new_image[y][x] = image[size - 1 - x][y];
         }
     }
     new_image
@@ -300,8 +302,8 @@ fn image_permutations(image: &Image) -> Vec<Image> {
 }
 
 fn count_image_pattern(image: &Image, pattern: &Vec<Vector2D>) -> usize {
-    let pattern_width = pattern.iter().max_by_key(|pos| pos.x).unwrap().x as usize - 1;
-    let pattern_height = pattern.iter().max_by_key(|pos| pos.y).unwrap().y as usize - 1;
+    let pattern_width = pattern.iter().max_by_key(|pos| pos.x).unwrap().x as usize;
+    let pattern_height = pattern.iter().max_by_key(|pos| pos.y).unwrap().y as usize;
     let mut count = 0;
     for start_y in 0..(image.len() - pattern_height) {
         for start_x in 0..(image[0].len() - pattern_width) {
