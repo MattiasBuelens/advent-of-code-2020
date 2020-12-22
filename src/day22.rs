@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-type Input = (VecDeque<u32>, VecDeque<u32>);
+type Input = (VecDeque<usize>, VecDeque<usize>);
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum Player {
@@ -26,7 +26,7 @@ pub fn input_generator(input: &str) -> Input {
     (deck1, deck2)
 }
 
-fn play_round(deck1: &mut VecDeque<u32>, deck2: &mut VecDeque<u32>) {
+fn play_round(deck1: &mut VecDeque<usize>, deck2: &mut VecDeque<usize>) {
     let top1 = deck1.pop_front().unwrap();
     let top2 = deck2.pop_front().unwrap();
     if top1 > top2 {
@@ -38,7 +38,7 @@ fn play_round(deck1: &mut VecDeque<u32>, deck2: &mut VecDeque<u32>) {
     }
 }
 
-fn play_game(mut deck1: VecDeque<u32>, mut deck2: VecDeque<u32>) -> (Player, Vec<u32>) {
+fn play_game(mut deck1: VecDeque<usize>, mut deck2: VecDeque<usize>) -> (Player, Vec<usize>) {
     while !deck1.is_empty() && !deck2.is_empty() {
         play_round(&mut deck1, &mut deck2);
     }
@@ -50,16 +50,16 @@ fn play_game(mut deck1: VecDeque<u32>, mut deck2: VecDeque<u32>) -> (Player, Vec
     (winner, winner_deck.make_contiguous().to_vec())
 }
 
-fn player_score(deck: &[u32]) -> u32 {
+fn player_score(deck: &[usize]) -> usize {
     deck.iter()
         .rev()
         .enumerate()
-        .map(|(i, &card)| (i as u32 + 1) * card)
+        .map(|(i, &card)| (i + 1) * card)
         .sum()
 }
 
 #[aoc(day22, part1)]
-pub fn part1(input: &Input) -> u32 {
+pub fn part1(input: &Input) -> usize {
     let (deck1, deck2) = input.clone();
     let (_, winner_deck) = play_game(deck1, deck2);
     player_score(&winner_deck)
