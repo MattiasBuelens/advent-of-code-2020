@@ -2,6 +2,12 @@ use std::collections::VecDeque;
 
 type Input = (VecDeque<u32>, VecDeque<u32>);
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+enum Player {
+    Player1,
+    Player2,
+}
+
 #[aoc_generator(day22)]
 pub fn input_generator(input: &str) -> Input {
     let mut lines = input.lines();
@@ -32,6 +38,18 @@ fn play_round(deck1: &mut VecDeque<u32>, deck2: &mut VecDeque<u32>) {
     }
 }
 
+fn play_game(mut deck1: VecDeque<u32>, mut deck2: VecDeque<u32>) -> (Player, Vec<u32>) {
+    while !deck1.is_empty() && !deck2.is_empty() {
+        play_round(&mut deck1, &mut deck2);
+    }
+    let (winner, mut winner_deck) = if deck1.is_empty() {
+        (Player::Player2, deck2)
+    } else {
+        (Player::Player1, deck1)
+    };
+    (winner, winner_deck.make_contiguous().to_vec())
+}
+
 fn player_score(deck: &[u32]) -> u32 {
     deck.iter()
         .rev()
@@ -42,12 +60,9 @@ fn player_score(deck: &[u32]) -> u32 {
 
 #[aoc(day22, part1)]
 pub fn part1(input: &Input) -> u32 {
-    let (mut deck1, mut deck2) = input.clone();
-    while !deck1.is_empty() && !deck2.is_empty() {
-        play_round(&mut deck1, &mut deck2);
-    }
-    let mut winner = if deck1.is_empty() { deck2 } else { deck1 };
-    player_score(winner.make_contiguous())
+    let (deck1, deck2) = input.clone();
+    let (_, winner_deck) = play_game(deck1, deck2);
+    player_score(&winner_deck)
 }
 
 #[aoc(day22, part2)]
