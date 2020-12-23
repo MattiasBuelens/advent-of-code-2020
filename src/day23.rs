@@ -1,4 +1,5 @@
-use std::collections::VecDeque;
+use std::collections::LinkedList;
+use std::iter::FromIterator;
 
 #[aoc_generator(day23)]
 pub fn input_generator(input: &str) -> Vec<u32> {
@@ -8,12 +9,16 @@ pub fn input_generator(input: &str) -> Vec<u32> {
         .collect()
 }
 
-fn play_round(cups: &mut VecDeque<u32>) {
+fn play_round(cups: &mut LinkedList<u32>) {
     let largest_cup_label = cups.len() as u32;
+    let mut cursor = cups.cursor_front_mut();
     // The current cup is at the head of the queue
-    let current = *cups.front().unwrap();
+    let current = cursor.remove_current().unwrap();
     // Pick up three cups after the current cup
-    let picked = cups.drain(1..=3).collect::<Vec<_>>();
+    cursor.move_next();
+    cursor.move_next();
+    cursor.move_next();
+    let picked = cursor.split_before();
     // Select the destination cup
     let destination_label = {
         // The crab selects a destination cup: the cup with a label equal
@@ -38,28 +43,30 @@ fn play_round(cups: &mut VecDeque<u32>) {
     };
     // The crab places the cups it just picked up so that they are immediately clockwise
     // of the destination cup.
-    let destination_index = cups
-        .iter()
-        .position(|&cup| cup == destination_label)
-        .unwrap();
-    for cup in picked.into_iter().rev() {
-        cups.insert(destination_index + 1, cup);
+    // FIXME THIS IS THE SLOW PART!!!
+    while *cursor.current().unwrap() != destination_label {
+        cursor.move_next();
     }
+    cursor.splice_after(picked);
     // The crab selects a new current cup: the cup which is immediately clockwise
     // of the current cup.
-    cups.rotate_left(1);
+    cups.push_back(current);
 }
 
 #[aoc(day23, part1)]
 pub fn part1(input: &[u32]) -> String {
-    let mut cups = VecDeque::from(input.to_vec());
+    let mut cups = LinkedList::from_iter(input.to_vec());
     // Play 100 rounds
     for _i in 1..=100 {
         play_round(&mut cups);
     }
     // Rotate cup with label 1 into first position
-    let pos_1 = cups.iter().position(|&cup| cup == 1).unwrap();
-    cups.rotate_left(pos_1);
+    let mut cursor = cups.cursor_front_mut();
+    while *cursor.current().unwrap() != 1 {
+        cursor.move_next();
+    }
+    let mut head = cursor.split_before();
+    cups.append(&mut head);
     // Drop first cup (with label 1)
     cups.pop_front();
     // Join without extra characters
