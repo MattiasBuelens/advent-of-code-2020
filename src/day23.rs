@@ -89,10 +89,10 @@ fn play_round(cups: &mut Cups) {
     let current = cups.head();
     // Pick up three cups after the current cup
     let picked = {
-        let mut picked = vec![];
-        for _i in 0..3 {
+        let mut picked = [0; 3];
+        for i in 0..picked.len() {
             let label = cups.get_next(current);
-            picked.push(label);
+            picked[i] = label;
             cups.remove(current, label);
         }
         picked
@@ -121,7 +121,7 @@ fn play_round(cups: &mut Cups) {
     };
     // The crab places the cups it just picked up so that they are immediately clockwise
     // of the destination cup.
-    for label in picked.into_iter().rev() {
+    for &label in picked.iter().rev() {
         cups.insert_after(destination_label, label);
     }
     // The crab selects a new current cup: the cup which is immediately clockwise
