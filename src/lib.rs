@@ -1,5 +1,3 @@
-#![feature(linked_list_cursors)]
-
 extern crate aoc_runner;
 
 #[macro_use]
