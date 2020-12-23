@@ -1,128 +1,73 @@
 use std::collections::HashMap;
 
-struct Cup {
-    label: u32,
-    prev_label: u32,
-    next_label: u32,
-}
-
+#[derive(Debug)]
 struct Cups {
-    head_label: u32,
-    cups_by_label: HashMap<u32, Cup>,
+    head: u32,
+    next: HashMap<u32, u32>,
 }
 
 impl Cups {
     fn from_iter<I: IntoIterator<Item = u32>>(x: I) -> Self {
         let mut it = x.into_iter();
-        let mut cups_by_label = HashMap::new();
 
         // Head
-        let head_label = it.next().unwrap();
-        let mut cup = Cup {
-            label: head_label.clone(),
-            prev_label: 0,
-            next_label: 0,
-        };
-        while let Some(label) = it.next() {
-            let prev_label = cup.label;
-            // Connect previous cup to new cup
-            cup.next_label = label;
-            // Insert previous cup
-            cups_by_label.insert(cup.label.clone(), cup);
-            // Create new cup
-            cup = Cup {
-                label,
-                prev_label,
-                next_label: 0,
-            }
+        let head = it.next().unwrap();
+        let mut next = HashMap::new();
+
+        let mut prev = head.clone();
+        while let Some(current) = it.next() {
+            next.insert(prev.clone(), current.clone());
+            prev = current;
         }
 
-        // Connect head to tail
-        cups_by_label.get_mut(&head_label).unwrap().prev_label = cup.label;
         // Connect tail to head
-        cup.next_label = head_label.clone();
-        // Insert tail
-        cups_by_label.insert(cup.label.clone(), cup);
+        next.insert(prev, head.clone());
 
-        Cups {
-            head_label,
-            cups_by_label,
-        }
+        Cups { head, next }
     }
 
     fn len(&self) -> usize {
-        self.cups_by_label.len()
+        self.next.len()
     }
 
-    fn get(&self, label: u32) -> &Cup {
-        self.cups_by_label.get(&label).unwrap()
-    }
-
-    fn get_mut(&mut self, label: u32) -> &mut Cup {
-        self.cups_by_label.get_mut(&label).unwrap()
-    }
-
-    fn head(&self) -> &Cup {
-        self.get(self.head_label)
-    }
-
-    fn tail(&self) -> &Cup {
-        self.get_prev(self.head())
+    fn head(&self) -> u32 {
+        self.head
     }
 
     fn advance_head(&mut self) {
-        self.head_label = self.head().next_label;
+        self.head = self.get_next(self.head);
     }
 
     fn replace_head(&mut self, label: u32) {
-        self.head_label = label;
+        self.head = label;
     }
 
-    fn get_prev(&self, cup: &Cup) -> &Cup {
-        self.cups_by_label.get(&cup.prev_label).unwrap()
+    fn get_next(&self, label: u32) -> u32 {
+        *self.next.get(&label).unwrap()
     }
 
-    fn get_next(&self, cup: &Cup) -> &Cup {
-        self.cups_by_label.get(&cup.next_label).unwrap()
-    }
-
-    fn remove(&mut self, label: u32) {
-        let cup = self.get(label);
-        let prev_label = cup.prev_label;
-        let next_label = cup.next_label;
-
-        let prev = self.get_mut(prev_label);
-        prev.next_label = next_label;
-
-        let next = self.get_mut(next_label);
-        next.prev_label = prev_label;
-
-        if label == self.head_label {
-            self.head_label = next_label;
+    fn remove(&mut self, prev_label: u32, label: u32) {
+        assert_eq!(self.get_next(prev_label), label);
+        let next_label = self.get_next(label);
+        self.next.insert(prev_label, next_label);
+        if label == self.head {
+            self.head = next_label;
         }
     }
 
     fn insert_after(&mut self, ref_label: u32, new_label: u32) {
-        let ref_next = self.get(ref_label).next_label;
-
-        let new_cup = self.get_mut(new_label);
-        new_cup.prev_label = ref_label;
-        new_cup.next_label = ref_next;
-
-        let prev = self.get_mut(ref_label);
-        prev.next_label = new_label;
-
-        let next = self.get_mut(ref_next);
-        next.prev_label = new_label;
+        let next_label = self.get_next(ref_label);
+        self.next.insert(ref_label, new_label);
+        self.next.insert(new_label, next_label);
     }
 
     fn into_vec(self) -> Vec<u32> {
         let mut result = vec![];
-        let mut cup = self.head();
+        let mut label = self.head;
         loop {
-            result.push(cup.label);
-            cup = self.get_next(cup);
-            if cup.label == self.head_label {
+            result.push(label);
+            label = self.get_next(label);
+            if label == self.head {
                 break;
             }
         }
@@ -142,15 +87,13 @@ fn play_round(cups: &mut Cups) {
     let largest_cup_label = cups.len() as u32;
     // The current cup is at the head of the queue
     let current = cups.head();
-    let current_label = current.label;
     // Pick up three cups after the current cup
     let picked = {
         let mut picked = vec![];
-        let mut next_cup_label = current.next_label;
         for _i in 0..3 {
-            picked.push(next_cup_label);
-            cups.remove(next_cup_label);
-            next_cup_label = cups.get(next_cup_label).next_label;
+            let label = cups.get_next(current);
+            picked.push(label);
+            cups.remove(current, label);
         }
         picked
     };
@@ -158,7 +101,7 @@ fn play_round(cups: &mut Cups) {
     let destination_label = {
         // The crab selects a destination cup: the cup with a label equal
         // to the current cup's label minus one.
-        let mut label = current_label - 1;
+        let mut label = current - 1;
         loop {
             if label == 0 {
                 // If at any point in this process the value goes below the lowest value
@@ -195,14 +138,12 @@ pub fn part1(input: &[u32]) -> String {
     }
     // Rotate cup with label 1 into first position
     cups.replace_head(1);
-    // Drop first cup (with label 1)
-    cups.remove(1);
-    // Join without extra characters
     cups.into_vec()
         .into_iter()
+        .skip(1) // drop first cup (with label 1)
         .map(|x| x.to_string())
         .collect::<Vec<_>>()
-        .join("")
+        .join("") // join without extra characters
 }
 
 #[aoc(day23, part2)]
@@ -216,10 +157,8 @@ pub fn part2(input: &[u32]) -> u64 {
         play_round(&mut cups);
     }
 
-    // Find cup with label 1
-    let cup1 = cups.get(1);
-    // Multiply next two cups
-    let next1 = cups.get_next(cup1);
+    // Multiply next two cups after cup with label 1
+    let next1 = cups.get_next(1);
     let next2 = cups.get_next(next1);
-    (next1.label as u64) * (next2.label as u64)
+    (next1 as u64) * (next2 as u64)
 }
