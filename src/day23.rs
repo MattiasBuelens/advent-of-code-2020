@@ -206,6 +206,20 @@ pub fn part1(input: &[u32]) -> String {
 }
 
 #[aoc(day23, part2)]
-pub fn part2(input: &[u32]) -> i32 {
-    todo!()
+pub fn part2(input: &[u32]) -> u64 {
+    let largest_cup_label = input.len() as u32;
+    let mut input = input.to_vec();
+    input.extend((largest_cup_label + 1)..=1_000_000);
+
+    let mut cups = Cups::from_iter(input.to_vec());
+    for _i in 1..=10_000_000 {
+        play_round(&mut cups);
+    }
+
+    // Find cup with label 1
+    let cup1 = cups.get(1);
+    // Multiply next two cups
+    let next1 = cups.get_next(cup1);
+    let next2 = cups.get_next(next1);
+    (next1.label as u64) * (next2.label as u64)
 }
