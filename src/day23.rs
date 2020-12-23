@@ -34,12 +34,12 @@ impl Cups {
         self.head
     }
 
-    fn advance_head(&mut self) {
-        self.head = self.get_next(self.head);
+    fn set_head(&mut self, label: u32) {
+        self.head = label;
     }
 
-    fn replace_head(&mut self, label: u32) {
-        self.head = label;
+    fn advance_head(&mut self) {
+        self.head = self.get_next(self.head);
     }
 
     fn get_next(&self, label: u32) -> u32 {
@@ -137,7 +137,7 @@ pub fn part1(input: &[u32]) -> String {
         play_round(&mut cups);
     }
     // Rotate cup with label 1 into first position
-    cups.replace_head(1);
+    cups.set_head(1);
     cups.into_vec()
         .into_iter()
         .skip(1) // drop first cup (with label 1)
