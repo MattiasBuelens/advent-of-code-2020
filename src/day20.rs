@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::fmt::{Display, Formatter};
-use std::iter::FromIterator;
 use std::str::FromStr;
 
 use crate::util::Vector2D;
@@ -188,7 +187,7 @@ fn place_tiles(size: i32, input: &Input) -> Option<HashMap<Vector2D, (u32, Tile)
         &HashMap::new(),
         size,
         Vector2D::zero(),
-        HashMap::from_iter(input.clone()),
+        input.clone().into_iter().collect(),
     )
 }
 

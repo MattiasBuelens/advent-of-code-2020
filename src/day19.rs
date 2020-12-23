@@ -1,5 +1,4 @@
 use std::collections::{HashMap, HashSet};
-use std::iter::FromIterator;
 use std::str::FromStr;
 
 #[derive(Debug, Clone)]
@@ -58,7 +57,7 @@ fn match_rule_in_state<'a>(
                     // Match all sub rules in sequence
                     sequence
                         .iter()
-                        .fold(HashSet::from_iter(Some(state)), |states, sub_rule| {
+                        .fold(Some(state).into_iter().collect(), |states, sub_rule| {
                             match_rule(*sub_rule, rules, &states)
                         })
                 })
@@ -84,7 +83,7 @@ fn match_rule<'a>(
 }
 
 fn match_rule_complete(rule_id: usize, rules: &HashMap<usize, Rule>, s: &str) -> bool {
-    let final_states = match_rule(rule_id, rules, &HashSet::from_iter(Some(s)));
+    let final_states = match_rule(rule_id, rules, &Some(s).into_iter().collect());
     // At least one match must have consumed the entire string
     final_states.contains(&"")
 }
