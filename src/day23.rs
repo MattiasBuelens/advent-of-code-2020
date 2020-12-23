@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::iter::FromIterator;
 
 #[derive(Debug)]
 struct Cups {
@@ -6,9 +7,9 @@ struct Cups {
     next: HashMap<u32, u32>,
 }
 
-impl Cups {
-    fn from_iter<I: IntoIterator<Item = u32>>(x: I) -> Self {
-        let mut it = x.into_iter();
+impl FromIterator<u32> for Cups {
+    fn from_iter<I: IntoIterator<Item = u32>>(iter: I) -> Self {
+        let mut it = iter.into_iter();
 
         // Head
         let head = it.next().unwrap();
@@ -25,7 +26,9 @@ impl Cups {
 
         Cups { head, next }
     }
+}
 
+impl Cups {
     fn len(&self) -> usize {
         self.next.len()
     }
@@ -131,7 +134,7 @@ fn play_round(cups: &mut Cups) {
 
 #[aoc(day23, part1)]
 pub fn part1(input: &[u32]) -> String {
-    let mut cups = Cups::from_iter(input.to_vec());
+    let mut cups = input.to_vec().into_iter().collect::<Cups>();
     // Play 100 rounds
     for _i in 1..=100 {
         play_round(&mut cups);
@@ -152,7 +155,7 @@ pub fn part2(input: &[u32]) -> u64 {
     let mut input = input.to_vec();
     input.extend((largest_cup_label + 1)..=1_000_000);
 
-    let mut cups = Cups::from_iter(input.to_vec());
+    let mut cups = input.into_iter().collect::<Cups>();
     for _i in 1..=10_000_000 {
         play_round(&mut cups);
     }
