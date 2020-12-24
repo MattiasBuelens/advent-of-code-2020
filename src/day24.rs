@@ -74,10 +74,11 @@ pub fn input_generator(input: &str) -> Vec<Path> {
         .collect()
 }
 
-#[aoc(day24, part1)]
-pub fn part1(input: &[Path]) -> usize {
-    let mut black_tiles = HashSet::<Vector2D>::new();
-    for path in input {
+type TileFloor = HashSet<Vector2D>;
+
+fn create_tile_floor(paths: &[Path]) -> TileFloor {
+    let mut black_tiles = TileFloor::new();
+    for path in paths {
         let tile = path
             .iter()
             .fold(Vector2D::zero(), |pos, direction| pos + direction.step());
@@ -89,10 +90,58 @@ pub fn part1(input: &[Path]) -> usize {
             black_tiles.insert(tile);
         }
     }
-    black_tiles.len()
+    black_tiles
+}
+
+#[aoc(day24, part1)]
+pub fn part1(paths: &[Path]) -> usize {
+    create_tile_floor(paths).len()
+}
+
+fn get_neighbours(pos: Vector2D) -> [Vector2D; 6] {
+    [
+        pos + Direction::E.step(),
+        pos + Direction::SE.step(),
+        pos + Direction::SW.step(),
+        pos + Direction::W.step(),
+        pos + Direction::NW.step(),
+        pos + Direction::NE.step(),
+    ]
+}
+
+fn step(floor: &TileFloor) -> TileFloor {
+    let min_x = floor.iter().map(|pos| pos.x).min().unwrap();
+    let max_x = floor.iter().map(|pos| pos.x).max().unwrap();
+    let min_y = floor.iter().map(|pos| pos.y).min().unwrap();
+    let max_y = floor.iter().map(|pos| pos.y).max().unwrap();
+    let mut new_floor = TileFloor::new();
+    for x in (min_x - 1)..=(max_x + 1) {
+        for y in (min_y - 1)..=(max_y + 1) {
+            let pos = Vector2D::new(x, y);
+            let was_black = floor.contains(&pos);
+            let black_neighbours = get_neighbours(pos)
+                .iter()
+                .filter(|neighbour| floor.contains(neighbour))
+                .count();
+            let is_black = match (was_black, black_neighbours) {
+                (true, 0) => false,
+                (true, count) if count > 2 => false,
+                (false, 2) => true,
+                _ => was_black,
+            };
+            if is_black {
+                new_floor.insert(pos);
+            }
+        }
+    }
+    new_floor
 }
 
 #[aoc(day24, part2)]
-pub fn part2(input: &[Path]) -> i32 {
-    todo!()
+pub fn part2(paths: &[Path]) -> usize {
+    let mut floor = create_tile_floor(paths);
+    for _i in 1..=100 {
+        floor = step(&floor);
+    }
+    floor.len()
 }
